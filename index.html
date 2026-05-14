@@ -28,25 +28,16 @@ TITLE
 ======================================== */
 
 .title{
-
     position:absolute;
-
     top:20px;
-
     left:50%;
-
     transform:translateX(-50%);
-
     z-index:200;
 
     color:white;
-
     font-size:42px;
-
     font-weight:900;
-
     letter-spacing:2px;
-
     text-transform:uppercase;
 
     text-shadow:
@@ -60,7 +51,7 @@ TITLE
 }
 
 /* ========================================
-LEFT UI
+UI
 ======================================== */
 
 .ui{
@@ -77,22 +68,22 @@ LEFT UI
 
     align-items:center;
 
-    gap:20px;
+    gap:16px;
+
+    flex-wrap:wrap;
 }
 
 button{
 
-    padding:14px 30px;
+    padding:14px 24px;
 
-    font-size:22px;
+    font-size:20px;
 
     border:none;
 
     border-radius:12px;
 
     cursor:pointer;
-
-    background:#ff9800;
 
     color:white;
 
@@ -103,9 +94,37 @@ button{
 
 button:hover{
 
-    background:#ffb300;
-
     transform:scale(1.05);
+}
+
+#rollBtn{
+
+    background:#ff9800;
+}
+
+#rollBtn:hover{
+
+    background:#ffb300;
+}
+
+#autoBtn{
+
+    background:#43a047;
+}
+
+#autoBtn:hover{
+
+    background:#66bb6a;
+}
+
+#stopBtn{
+
+    background:#d32f2f;
+}
+
+#stopBtn:hover{
+
+    background:#ef5350;
 }
 
 .info{
@@ -279,6 +298,14 @@ LEADERBOARD
         ROLL
     </button>
 
+    <button id="autoBtn">
+        AUTOPLAY
+    </button>
+
+    <button id="stopBtn">
+        STOP
+    </button>
+
     <div class="info" id="info">
         Ferrari Turn
     </div>
@@ -330,10 +357,6 @@ const carData = [
     { name:"Force India", image:"forceindia.png" }
 
 ];
-
-/* ========================================
-LOAD IMAGES
-======================================== */
 
 carData.forEach(car=>{
 
@@ -421,11 +444,11 @@ function centerTrack(){
 
     rawPath.forEach(p=>{
 
-        if(p[0] < minX) minX = p[0];
-        if(p[0] > maxX) maxX = p[0];
+        minX = Math.min(minX,p[0]);
+        maxX = Math.max(maxX,p[0]);
 
-        if(p[1] < minY) minY = p[1];
-        if(p[1] > maxY) maxY = p[1];
+        minY = Math.min(minY,p[1]);
+        maxY = Math.max(maxY,p[1]);
     });
 
     const trackWidth =
@@ -535,12 +558,11 @@ for(let i=0;i<TOTAL_CARS;i++){
 
         index:startIndex,
 
+        laps:0,
+
         image:carData[i].img,
 
-        name:carData[i].name,
-
-        distance:
-            TOTAL_CARS - i
+        name:carData[i].name
     });
 }
 
@@ -603,7 +625,7 @@ function showDice(num){
 }
 
 /* ========================================
-CALCULATE TRUE PROGRESS
+TRUE RACE PROGRESS
 ======================================== */
 
 function getTrueProgress(player){
@@ -614,8 +636,12 @@ function getTrueProgress(player){
         % tiles.length;
 
     return (
-        player.distance * 10000
-        + tileProgress
+
+        player.laps * tiles.length
+
+        +
+
+        tileProgress
     );
 }
 
@@ -688,10 +714,6 @@ BUILD ROUND ORDER
 
 function buildRoundOrder(){
 
-    /*
-    FIRST ROUND
-    */
-
     if(!firstCycleComplete){
 
         currentRoundOrder =
@@ -700,17 +722,9 @@ function buildRoundOrder(){
         return;
     }
 
-    /*
-    FREEZE LEADERBOARD
-    */
-
     currentRoundOrder =
         getRaceOrder();
 }
-
-/*
-initialize first queue
-*/
 
 buildRoundOrder();
 
@@ -761,7 +775,7 @@ function drawTrack(){
 
     ctx.lineCap = "round";
 
-    ctx.lineJoin = "bevel";
+    ctx.lineJoin = "round";
 
     ctx.stroke();
 
@@ -786,11 +800,11 @@ function drawTrack(){
 
     ctx.lineWidth = 42;
 
-    ctx.strokeStyle = "#9c9c9c";
+    ctx.strokeStyle = "#8e8e8e";
 
     ctx.lineCap = "round";
 
-    ctx.lineJoin = "bevel";
+    ctx.lineJoin = "round";
 
     ctx.stroke();
 
@@ -805,7 +819,7 @@ function drawTrack(){
         ctx.arc(
             tile.x,
             tile.y,
-            5,
+            4,
             0,
             Math.PI*2
         );
@@ -821,7 +835,7 @@ function drawTrack(){
 
     const occupancy = {};
 
-    players.forEach((player,carIndex)=>{
+    players.forEach((player,index)=>{
 
         if(!occupancy[player.index]){
 
@@ -829,14 +843,14 @@ function drawTrack(){
         }
 
         occupancy[player.index]
-            .push(carIndex);
+            .push(index);
     });
 
     /*
     DRAW CARS
     */
 
-    players.forEach((player,carIndex)=>{
+    players.forEach((player,index)=>{
 
         let drawIndex =
             player.index;
@@ -845,7 +859,19 @@ function drawTrack(){
             occupancy[player.index];
 
         const slot =
-            sameSpotCars.indexOf(carIndex);
+            sameSpotCars.indexOf(index);
+
+        let lateralOffset = 0;
+
+        if(slot === 0){
+
+            lateralOffset = -10;
+        }
+
+        if(slot === 1){
+
+            lateralOffset = 10;
+        }
 
         if(slot >= 2){
 
@@ -880,27 +906,28 @@ function drawTrack(){
         const angle =
             Math.atan2(dy,dx);
 
-        let offsetX = 0;
-        let offsetY = 0;
+        const perpX =
+            Math.cos(angle + Math.PI/2);
 
-        if(slot === 0){
+        const perpY =
+            Math.sin(angle + Math.PI/2);
 
-            offsetX = -10;
-            offsetY = -10;
-        }
+        const finalX =
+            p.x + perpX * lateralOffset;
 
-        if(slot === 1){
-
-            offsetX = 10;
-            offsetY = 10;
-        }
+        const finalY =
+            p.y + perpY * lateralOffset;
 
         ctx.save();
 
         ctx.translate(
-            p.x + offsetX,
-            p.y + offsetY
+            finalX,
+            finalY
         );
+
+        /*
+        CAR ROTATION
+        */
 
         ctx.rotate(
             angle + Math.PI/2
@@ -911,7 +938,7 @@ function drawTrack(){
 
         if(img.complete){
 
-            const maxSize = 42;
+            const maxWidth = 32;
 
             const aspect =
                 img.width / img.height;
@@ -921,17 +948,17 @@ function drawTrack(){
 
             if(aspect >= 1){
 
-                drawWidth = maxSize;
+                drawWidth = maxWidth;
 
                 drawHeight =
-                    maxSize / aspect;
+                    maxWidth / aspect;
 
             }else{
 
-                drawHeight = maxSize;
+                drawHeight = maxWidth;
 
                 drawWidth =
-                    maxSize * aspect;
+                    maxWidth * aspect;
             }
 
             ctx.drawImage(
@@ -952,10 +979,6 @@ function drawTrack(){
     updateLeaderboard();
 }
 
-/* ========================================
-INITIAL DRAW
-======================================== */
-
 setTimeout(()=>{
 
     drawTrack();
@@ -968,127 +991,183 @@ MOVEMENT SYSTEM
 
 let isAnimating = false;
 
+let autoPlay = false;
+
 const rollBtn =
     document.getElementById("rollBtn");
 
+const autoBtn =
+    document.getElementById("autoBtn");
+
+const stopBtn =
+    document.getElementById("stopBtn");
+
 const info =
     document.getElementById("info");
+
+/* ========================================
+SINGLE TURN
+======================================== */
+
+async function playTurn(){
+
+    if(isAnimating) return;
+
+    isAnimating = true;
+
+    const currentPlayer =
+        currentRoundOrder[currentTurn];
+
+    const diceIndex =
+        carData.findIndex(
+            c=>c.name === currentPlayer.name
+        );
+
+    const pool =
+        dicePools[diceIndex];
+
+    const randomIndex =
+        Math.floor(
+            Math.random() *
+            pool.length
+        );
+
+    const value =
+        pool[randomIndex];
+
+    showDice(value);
+
+    info.innerHTML =
+
+        currentPlayer.name +
+
+        " rolled " +
+
+        value;
+
+    /*
+    SMOOTH MOVEMENT
+    */
+
+    for(let i=0;i<value;i++){
+
+        currentPlayer.index--;
+
+        if(currentPlayer.index < 0){
+
+            currentPlayer.index =
+                tiles.length - 1;
+
+            currentPlayer.laps++;
+        }
+
+        drawTrack();
+
+        await new Promise(resolve=>{
+
+            setTimeout(
+                resolve,
+                180
+            );
+
+        });
+    }
+
+    /*
+    NEXT TURN
+    */
+
+    currentTurn++;
+
+    /*
+    END OF ROUND
+    */
+
+    if(currentTurn >= TOTAL_CARS){
+
+        currentTurn = 0;
+
+        firstCycleComplete = true;
+
+        buildRoundOrder();
+    }
+
+    const nextPlayer =
+        currentRoundOrder[currentTurn];
+
+    setTimeout(()=>{
+
+        info.innerHTML =
+
+            nextPlayer.name +
+
+            " Turn";
+
+    },300);
+
+    isAnimating = false;
+}
+
+/* ========================================
+MANUAL ROLL
+======================================== */
 
 rollBtn.addEventListener(
     "click",
     async ()=>{
 
-        if(isAnimating) return;
+        if(autoPlay) return;
 
-        isAnimating = true;
+        await playTurn();
+    }
+);
 
-        /*
-        USE FROZEN ROUND ORDER
-        */
+/* ========================================
+AUTOPLAY LOOP
+======================================== */
 
-        const currentPlayer =
-            currentRoundOrder[currentTurn];
+async function autoPlayLoop(){
 
-        /*
-        WEIGHTED DICE
-        */
+    while(autoPlay){
 
-        const pool =
-            dicePools[
-                carData.findIndex(
-                    c=>c.name === currentPlayer.name
-                )
-            ];
+        await playTurn();
 
-        const randomIndex =
-            Math.floor(
-                Math.random() *
-                pool.length
+        await new Promise(resolve=>{
+
+            setTimeout(
+                resolve,
+                400
             );
 
-        const value =
-            pool[randomIndex];
+        });
+    }
+}
 
-        showDice(value);
+/* ========================================
+START AUTOPLAY
+======================================== */
 
-        info.innerHTML =
+autoBtn.addEventListener(
+    "click",
+    ()=>{
 
-            currentPlayer.name +
+        if(autoPlay) return;
 
-            " rolled " +
+        autoPlay = true;
 
-            value;
+        autoPlayLoop();
+    }
+);
 
-        /*
-        SMOOTH MOVEMENT
-        */
+/* ========================================
+STOP AUTOPLAY
+======================================== */
 
-        for(let i=0;i<value;i++){
+stopBtn.addEventListener(
+    "click",
+    ()=>{
 
-            currentPlayer.index--;
-
-            if(currentPlayer.index < 0){
-
-                currentPlayer.index =
-                    tiles.length - 1;
-            }
-
-            currentPlayer.distance++;
-
-            drawTrack();
-
-            await new Promise(resolve=>{
-
-                setTimeout(
-                    resolve,
-                    180
-                );
-
-            });
-        }
-
-        /*
-        NEXT TURN
-        */
-
-        currentTurn++;
-
-        /*
-        END OF ROUND
-        */
-
-        if(currentTurn >= TOTAL_CARS){
-
-            currentTurn = 0;
-
-            firstCycleComplete = true;
-
-            /*
-            rebuild queue ONLY
-            after full round
-            */
-
-            buildRoundOrder();
-        }
-
-        /*
-        NEXT PLAYER
-        */
-
-        const nextPlayer =
-            currentRoundOrder[currentTurn];
-
-        setTimeout(()=>{
-
-            info.innerHTML =
-
-                nextPlayer.name +
-
-                " Turn";
-
-        },500);
-
-        isAnimating = false;
+        autoPlay = false;
     }
 );
 
