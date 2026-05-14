@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formula 1 Boardgame</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    overflow:hidden;
+    background:#3d7a2d;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+/* ========================================
+TITLE
+======================================== */
+
+.title{
+
+    position:absolute;
+
+    top:20px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    z-index:200;
+
+    color:white;
+
+    font-size:42px;
+
+    font-weight:900;
+
+    letter-spacing:2px;
+
+    text-transform:uppercase;
+
+    text-shadow:
+        0 0 10px rgba(0,0,0,0.5),
+        0 0 20px rgba(0,0,0,0.3);
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+}
+
+/* ========================================
+LEFT UI
+======================================== */
+
+.ui{
+
+    position:absolute;
+
+    top:100px;
+
+    left:20px;
+
+    z-index:100;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:20px;
+}
+
+button{
+
+    padding:14px 30px;
+
+    font-size:22px;
+
+    border:none;
+
+    border-radius:12px;
+
+    cursor:pointer;
+
+    background:#ff9800;
+
+    color:white;
+
+    font-weight:bold;
+
+    transition:0.2s;
+}
+
+button:hover{
+
+    background:#ffb300;
+
+    transform:scale(1.05);
+}
+
+.info{
+
+    color:white;
+
+    font-size:22px;
+
+    font-weight:bold;
+
+    min-width:260px;
+}
+
+/* ========================================
+DICE
+======================================== */
+
+.dice{
+
+    width:90px;
+
+    height:90px;
+
+    background:white;
+
+    border-radius:16px;
+
+    display:grid;
+
+    grid-template-columns:repeat(3,1fr);
+
+    grid-template-rows:repeat(3,1fr);
+
+    padding:10px;
+
+    gap:4px;
+
+    box-shadow:
+        0 0 15px rgba(0,0,0,0.4);
+}
+
+.dot{
+
+    width:16px;
+
+    height:16px;
+
+    background:black;
+
+    border-radius:50%;
+
+    align-self:center;
+
+    justify-self:center;
+
+    opacity:0;
+}
+
+/* ========================================
+LEADERBOARD
+======================================== */
+
+.leaderboard{
+
+    position:absolute;
+
+    top:120px;
+
+    right:20px;
+
+    width:270px;
+
+    background:
+        rgba(0,0,0,0.78);
+
+    border-radius:20px;
+
+    padding:18px;
+
+    color:white;
+
+    z-index:300;
+
+    backdrop-filter:blur(8px);
+
+    box-shadow:
+        0 0 20px rgba(0,0,0,0.4);
+}
+
+.leaderboard-title{
+
+    font-size:28px;
+
+    font-weight:900;
+
+    margin-bottom:14px;
+
+    text-align:center;
+
+    text-transform:uppercase;
+}
+
+#leaderboardTable{
+
+    width:100%;
+
+    border-collapse:collapse;
+}
+
+#leaderboardTable tr{
+
+    border-bottom:
+        1px solid rgba(255,255,255,0.12);
+}
+
+#leaderboardTable td{
+
+    padding:8px 4px;
+
+    font-size:16px;
+}
+
+.rank{
+
+    width:40px;
+
+    font-weight:bold;
+}
+
+.team{
+
+    text-align:left;
+}
+
+.position{
+
+    text-align:right;
+
+    color:#ffd54f;
+
+    font-weight:bold;
+}
+
+</style>
+</head>
+<body>
+
+<!-- =====================================
+TITLE
+===================================== -->
+
+<div class="title">
+    Formula 1 Boardgame
+</div>
+
+<!-- =====================================
+LEFT UI
+===================================== -->
+
+<div class="ui">
+
+    <div class="dice">
+
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+
+    </div>
+
+    <button id="rollBtn">
+        ROLL
+    </button>
+
+    <div class="info" id="info">
+        Ferrari Turn
+    </div>
+
+</div>
+
+<!-- =====================================
+LEADERBOARD
+===================================== -->
+
+<div class="leaderboard">
+
+    <div class="leaderboard-title">
+        Leaderboard
+    </div>
+
+    <table id="leaderboardTable"></table>
+
+</div>
+
+<!-- =====================================
+CANVAS
+===================================== -->
+
+<canvas id="canvas"></canvas>
+
+<script>
+
+/* ========================================
+CANVAS
+======================================== */
+
+const canvas =
+    document.getElementById("canvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+/* ========================================
+CAR DATABASE
+======================================== */
+
+const carData = [
+
+    {
+        name:"Ferrari",
+        image:"ferrari.png"
+    },
+
+    {
+        name:"McLaren",
+        image:"mclaren.png"
+    },
+
+    {
+        name:"BMW",
+        image:"bmw.png"
+    },
+
+    {
+        name:"Renault",
+        image:"renault.png"
+    },
+
+    {
+        name:"Toyota",
+        image:"toyota.png"
+    },
+
+    {
+        name:"STR",
+        image:"str.png"
+    },
+
+    {
+        name:"RedBull",
+        image:"redbull.png"
+    },
+
+    {
+        name:"Williams",
+        image:"williams.png"
+    },
+
+    {
+        name:"Honda",
+        image:"honda.png"
+    },
+
+    {
+        name:"Force India",
+        image:"forceindia.png"
+    }
+];
+
+/* ========================================
+LOAD IMAGES
+======================================== */
+
+carData.forEach(car=>{
+
+    const img = new Image();
+
+    img.src = car.image;
+
+    car.img = img;
+});
+
+/* ========================================
+TRACK PATH
+======================================== */
+
+const rawPath = [
+
+    [120,650],
+    [250,650],
+    [400,650],
+    [600,650],
+    [850,650],
+    [1050,650],
+
+    [1150,600],
+    [1120,500],
+    [1070,380],
+    [1020,260],
+    [960,140],
+
+    [880,90],
+
+    [790,180],
+    [720,260],
+    [690,350],
+
+    [740,430],
+    [860,470],
+    [940,520],
+
+    [910,590],
+    [780,590],
+    [620,590],
+    [470,590],
+    [330,590],
+
+    [250,550],
+    [240,470],
+
+    [290,410],
+    [390,410],
+    [500,440],
+    [610,450],
+
+    [670,390],
+
+    [620,330],
+    [540,270],
+    [520,190],
+
+    [450,160],
+    [390,110],
+    [310,50],
+    [240,40],
+
+    [220,160],
+    [200,300],
+    [170,470],
+
+    [120,650]
+];
+
+/* ========================================
+CENTER TRACK
+======================================== */
+
+let path = [];
+
+function centerTrack(){
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    rawPath.forEach(p=>{
+
+        if(p[0] < minX) minX = p[0];
+        if(p[0] > maxX) maxX = p[0];
+
+        if(p[1] < minY) minY = p[1];
+        if(p[1] > maxY) maxY = p[1];
+    });
+
+    const trackWidth =
+        maxX - minX;
+
+    const trackHeight =
+        maxY - minY;
+
+    const scale =
+        Math.min(
+
+            canvas.width /
+            (trackWidth + 500),
+
+            canvas.height /
+            (trackHeight + 200)
+        );
+
+    const offsetX =
+
+        (canvas.width -
+        trackWidth * scale) / 2
+
+        - minX * scale;
+
+    const offsetY =
+
+        (canvas.height -
+        trackHeight * scale) / 2
+
+        - minY * scale;
+
+    path = rawPath.map(p=>{
+
+        return [
+
+            p[0] * scale + offsetX,
+
+            p[1] * scale + offsetY
+        ];
+    });
+}
+
+centerTrack();
+
+/* ========================================
+TRACK TILES
+======================================== */
+
+let tiles = [];
+
+function generateTiles(){
+
+    tiles = [];
+
+    for(let i=0;i<path.length-1;i++){
+
+        const start = path[i];
+        const end = path[i+1];
+
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+
+        const dist =
+            Math.sqrt(dx*dx + dy*dy);
+
+        const spacing = 24;
+
+        const steps =
+            Math.floor(dist / spacing);
+
+        for(let j=0;j<steps;j++){
+
+            const t = j / steps;
+
+            tiles.push({
+
+                x:start[0] + dx*t,
+                y:start[1] + dy*t
+            });
+        }
+    }
+}
+
+generateTiles();
+
+/* ========================================
+PLAYERS
+======================================== */
+
+const TOTAL_CARS =
+    carData.length;
+
+const players = [];
+
+const GRID_SPACING = 3;
+
+for(let i=0;i<TOTAL_CARS;i++){
+
+    let startIndex =
+        i * GRID_SPACING;
+
+    startIndex =
+        startIndex % tiles.length;
+
+    /*
+    FRONT CARS START
+    WITH HIGHER DISTANCE
+    */
+
+    const startingDistance =
+
+        TOTAL_CARS - i;
+
+    players.push({
+
+        index:startIndex,
+
+        image:carData[i].img,
+
+        name:carData[i].name,
+
+        distance:startingDistance
+    });
+}
+
+let currentTurn = 0;
+
+/* ========================================
+DICE POOLS
+======================================== */
+
+const dicePools = [
+
+    [6,6,6,6,6,5,5,4,4,4],
+    [6,6,6,6,6,5,5,4,4,4],
+    [6,6,6,6,5,5,5,4,4,4],
+    [6,6,6,5,5,5,5,4,4,4],
+    [6,6,6,5,5,5,4,4,4,4],
+    [6,6,5,5,5,4,4,4,4,4],
+    [6,6,5,5,5,4,4,4,4,4],
+    [6,6,5,5,5,4,4,4,4,4],
+    [6,6,5,5,4,4,4,4,4,4],
+    [6,5,5,5,5,4,4,4,4,4]
+];
+
+/* ========================================
+DICE UI
+======================================== */
+
+const dots =
+    document.querySelectorAll(".dot");
+
+const faces = {
+
+    1:[4],
+    2:[0,8],
+    3:[0,4,8],
+    4:[0,2,6,8],
+    5:[0,2,4,6,8],
+    6:[0,2,3,5,6,8]
+};
+
+function showDice(num){
+
+    dots.forEach(dot=>{
+
+        dot.style.opacity = 0;
+    });
+
+    faces[num].forEach(i=>{
+
+        dots[i].style.opacity = 1;
+    });
+}
+
+/* ========================================
+LEADERBOARD
+======================================== */
+
+function updateLeaderboard(){
+
+    const table =
+        document.getElementById(
+            "leaderboardTable"
+        );
+
+    const standings =
+        [...players];
+
+    standings.sort((a,b)=>{
+
+        return b.distance - a.distance;
+    });
+
+    table.innerHTML = "";
+
+    standings.forEach((car,index)=>{
+
+        table.innerHTML += `
+
+            <tr>
+
+                <td class="rank">
+                    ${index + 1}
+                </td>
+
+                <td class="team">
+                    ${car.name}
+                </td>
+
+                <td class="position">
+                    P${index + 1}
+                </td>
+
+            </tr>
+        `;
+    });
+}
+
+/* ========================================
+DRAW TRACK
+======================================== */
+
+function drawTrack(){
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    /*
+    GRASS
+    */
+
+    ctx.fillStyle = "#3d7a2d";
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    /*
+    TRACK BORDER
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        path[0][0],
+        path[0][1]
+    );
+
+    for(let i=1;i<path.length;i++){
+
+        ctx.lineTo(
+            path[i][0],
+            path[i][1]
+        );
+    }
+
+    ctx.lineWidth = 54;
+
+    ctx.strokeStyle = "#111";
+
+    ctx.lineCap = "round";
+
+    ctx.lineJoin = "bevel";
+
+    ctx.stroke();
+
+    /*
+    ASPHALT
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        path[0][0],
+        path[0][1]
+    );
+
+    for(let i=1;i<path.length;i++){
+
+        ctx.lineTo(
+            path[i][0],
+            path[i][1]
+        );
+    }
+
+    ctx.lineWidth = 42;
+
+    ctx.strokeStyle = "#9c9c9c";
+
+    ctx.lineCap = "round";
+
+    ctx.lineJoin = "bevel";
+
+    ctx.stroke();
+
+    /*
+    TRACK NODES
+    */
+
+    for(const tile of tiles){
+
+        ctx.beginPath();
+
+        ctx.arc(
+            tile.x,
+            tile.y,
+            5,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fillStyle = "white";
+
+        ctx.fill();
+    }
+
+    /*
+    OCCUPANCY
+    */
+
+    const occupancy = {};
+
+    players.forEach((player,carIndex)=>{
+
+        const idx = player.index;
+
+        if(!occupancy[idx]){
+
+            occupancy[idx] = [];
+        }
+
+        occupancy[idx].push(carIndex);
+    });
+
+    /*
+    DRAW CARS
+    */
+
+    players.forEach((player,carIndex)=>{
+
+        let drawIndex =
+            player.index;
+
+        const sameSpotCars =
+            occupancy[player.index];
+
+        const slot =
+            sameSpotCars.indexOf(carIndex);
+
+        if(slot >= 2){
+
+            drawIndex =
+                (player.index + 1)
+                % tiles.length;
+        }
+
+        const p =
+            tiles[drawIndex];
+
+        const prevIndex =
+            (drawIndex + 1)
+            % tiles.length;
+
+        const nextIndex =
+            (drawIndex - 1 + tiles.length)
+            % tiles.length;
+
+        const prev =
+            tiles[prevIndex];
+
+        const next =
+            tiles[nextIndex];
+
+        const dx =
+            next.x - prev.x;
+
+        const dy =
+            next.y - prev.y;
+
+        const angle =
+            Math.atan2(dy,dx);
+
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if(slot === 0){
+
+            offsetX = -10;
+            offsetY = -10;
+        }
+
+        if(slot === 1){
+
+            offsetX = 10;
+            offsetY = 10;
+        }
+
+        ctx.save();
+
+        ctx.translate(
+            p.x + offsetX,
+            p.y + offsetY
+        );
+
+        ctx.rotate(
+            angle + Math.PI/2
+        );
+
+        const img =
+            player.image;
+
+        if(img.complete){
+
+            const maxSize = 42;
+
+            const aspect =
+                img.width / img.height;
+
+            let drawWidth;
+            let drawHeight;
+
+            if(aspect >= 1){
+
+                drawWidth = maxSize;
+
+                drawHeight =
+                    maxSize / aspect;
+
+            }else{
+
+                drawHeight = maxSize;
+
+                drawWidth =
+                    maxSize * aspect;
+            }
+
+            ctx.drawImage(
+
+                img,
+
+                -drawWidth/2,
+                -drawHeight/2,
+
+                drawWidth,
+                drawHeight
+            );
+        }
+
+        ctx.restore();
+    });
+
+    updateLeaderboard();
+}
+
+/* ========================================
+INITIAL DRAW
+======================================== */
+
+setTimeout(()=>{
+
+    drawTrack();
+
+},300);
+
+/* ========================================
+MOVEMENT
+======================================== */
+
+let isAnimating = false;
+
+const rollBtn =
+    document.getElementById("rollBtn");
+
+const info =
+    document.getElementById("info");
+
+rollBtn.addEventListener(
+    "click",
+    async ()=>{
+
+        if(isAnimating) return;
+
+        isAnimating = true;
+
+        /*
+        WEIGHTED DICE
+        */
+
+        const pool =
+            dicePools[currentTurn];
+
+        const randomIndex =
+            Math.floor(
+                Math.random() *
+                pool.length
+            );
+
+        const value =
+            pool[randomIndex];
+
+        showDice(value);
+
+        const player =
+            players[currentTurn];
+
+        info.innerHTML =
+
+            player.name +
+
+            " rolled " +
+
+            value;
+
+        /*
+        STEP MOVEMENT
+        */
+
+        for(let i=0;i<value;i++){
+
+            /*
+            CLOCKWISE MOVEMENT
+            */
+
+            player.index--;
+
+            if(player.index < 0){
+
+                player.index =
+                    tiles.length - 1;
+            }
+
+            /*
+            TRUE DISTANCE
+            */
+
+            player.distance++;
+
+            drawTrack();
+
+            await new Promise(resolve=>{
+
+                setTimeout(
+                    resolve,
+                    180
+                );
+
+            });
+        }
+
+        /*
+        NEXT TURN
+        */
+
+        currentTurn++;
+
+        if(currentTurn >= TOTAL_CARS){
+
+            currentTurn = 0;
+        }
+
+        setTimeout(()=>{
+
+            info.innerHTML =
+
+                players[currentTurn].name +
+
+                " Turn";
+
+        },500);
+
+        isAnimating = false;
+    }
+);
+
+window.addEventListener(
+    "resize",
+    ()=>{
+
+        canvas.width =
+            innerWidth;
+
+        canvas.height =
+            innerHeight;
+
+        centerTrack();
+
+        generateTiles();
+
+        drawTrack();
+    }
+);
+
+</script>
+
+</body>
+</html>
