@@ -253,17 +253,9 @@ LEADERBOARD
 </head>
 <body>
 
-<!-- =====================================
-TITLE
-===================================== -->
-
 <div class="title">
     Formula 1 Boardgame
 </div>
-
-<!-- =====================================
-LEFT UI
-===================================== -->
 
 <div class="ui">
 
@@ -293,10 +285,6 @@ LEFT UI
 
 </div>
 
-<!-- =====================================
-LEADERBOARD
-===================================== -->
-
 <div class="leaderboard">
 
     <div class="leaderboard-title">
@@ -306,10 +294,6 @@ LEADERBOARD
     <table id="leaderboardTable"></table>
 
 </div>
-
-<!-- =====================================
-CANVAS
-===================================== -->
 
 <canvas id="canvas"></canvas>
 
@@ -334,55 +318,17 @@ CAR DATABASE
 
 const carData = [
 
-    {
-        name:"Ferrari",
-        image:"ferrari.png"
-    },
+    { name:"Ferrari", image:"ferrari.png" },
+    { name:"McLaren", image:"mclaren.png" },
+    { name:"BMW", image:"bmw.png" },
+    { name:"Renault", image:"renault.png" },
+    { name:"Toyota", image:"toyota.png" },
+    { name:"STR", image:"str.png" },
+    { name:"RedBull", image:"redbull.png" },
+    { name:"Williams", image:"williams.png" },
+    { name:"Honda", image:"honda.png" },
+    { name:"Force India", image:"forceindia.png" }
 
-    {
-        name:"McLaren",
-        image:"mclaren.png"
-    },
-
-    {
-        name:"BMW",
-        image:"bmw.png"
-    },
-
-    {
-        name:"Renault",
-        image:"renault.png"
-    },
-
-    {
-        name:"Toyota",
-        image:"toyota.png"
-    },
-
-    {
-        name:"STR",
-        image:"str.png"
-    },
-
-    {
-        name:"RedBull",
-        image:"redbull.png"
-    },
-
-    {
-        name:"Williams",
-        image:"williams.png"
-    },
-
-    {
-        name:"Honda",
-        image:"honda.png"
-    },
-
-    {
-        name:"Force India",
-        image:"forceindia.png"
-    }
 ];
 
 /* ========================================
@@ -585,13 +531,7 @@ for(let i=0;i<TOTAL_CARS;i++){
     startIndex =
         startIndex % tiles.length;
 
-    /*
-    FRONT CARS START
-    WITH HIGHER DISTANCE
-    */
-
     const startingDistance =
-
         TOTAL_CARS - i;
 
     players.push({
@@ -607,6 +547,8 @@ for(let i=0;i<TOTAL_CARS;i++){
 }
 
 let currentTurn = 0;
+
+let firstCycleComplete = false;
 
 /* ========================================
 DICE POOLS
@@ -657,7 +599,7 @@ function showDice(num){
 }
 
 /* ========================================
-LEADERBOARD
+TRUE LEADERBOARD
 ======================================== */
 
 function updateLeaderboard(){
@@ -667,12 +609,31 @@ function updateLeaderboard(){
             "leaderboardTable"
         );
 
-    const standings =
-        [...players];
+    const standings = players.map(
+        player=>{
+
+            const tileProgress =
+
+                (tiles.length - player.index)
+                % tiles.length;
+
+            const totalProgress =
+
+                player.distance * 10000
+                + tileProgress;
+
+            return{
+
+                name:player.name,
+
+                progress:totalProgress
+            };
+        }
+    );
 
     standings.sort((a,b)=>{
 
-        return b.distance - a.distance;
+        return b.progress - a.progress;
     });
 
     table.innerHTML = "";
@@ -701,6 +662,42 @@ function updateLeaderboard(){
 }
 
 /* ========================================
+GET CURRENT RACE ORDER
+======================================== */
+
+function getRaceOrder(){
+
+    const standings = players.map(
+        player=>{
+
+            const tileProgress =
+
+                (tiles.length - player.index)
+                % tiles.length;
+
+            const totalProgress =
+
+                player.distance * 10000
+                + tileProgress;
+
+            return{
+
+                player:player,
+
+                progress:totalProgress
+            };
+        }
+    );
+
+    standings.sort((a,b)=>{
+
+        return b.progress - a.progress;
+    });
+
+    return standings;
+}
+
+/* ========================================
 DRAW TRACK
 ======================================== */
 
@@ -712,10 +709,6 @@ function drawTrack(){
         canvas.width,
         canvas.height
     );
-
-    /*
-    GRASS
-    */
 
     ctx.fillStyle = "#3d7a2d";
 
@@ -973,12 +966,29 @@ rollBtn.addEventListener(
 
         isAnimating = true;
 
-        /*
-        WEIGHTED DICE
-        */
+        let currentPlayer;
+
+        if(!firstCycleComplete){
+
+            currentPlayer =
+                players[currentTurn];
+
+        }else{
+
+            const standings =
+                getRaceOrder();
+
+            currentPlayer =
+                standings[currentTurn]
+                .player;
+        }
 
         const pool =
-            dicePools[currentTurn];
+            dicePools[
+                carData.findIndex(
+                    c=>c.name === currentPlayer.name
+                )
+            ];
 
         const randomIndex =
             Math.floor(
@@ -991,40 +1001,29 @@ rollBtn.addEventListener(
 
         showDice(value);
 
-        const player =
-            players[currentTurn];
-
         info.innerHTML =
 
-            player.name +
+            currentPlayer.name +
 
             " rolled " +
 
             value;
 
         /*
-        STEP MOVEMENT
+        SMOOTH MOVEMENT
         */
 
         for(let i=0;i<value;i++){
 
-            /*
-            CLOCKWISE MOVEMENT
-            */
+            currentPlayer.index--;
 
-            player.index--;
+            if(currentPlayer.index < 0){
 
-            if(player.index < 0){
-
-                player.index =
+                currentPlayer.index =
                     tiles.length - 1;
             }
 
-            /*
-            TRUE DISTANCE
-            */
-
-            player.distance++;
+            currentPlayer.distance++;
 
             drawTrack();
 
@@ -1047,13 +1046,32 @@ rollBtn.addEventListener(
         if(currentTurn >= TOTAL_CARS){
 
             currentTurn = 0;
+
+            firstCycleComplete = true;
+        }
+
+        let nextPlayer;
+
+        if(!firstCycleComplete){
+
+            nextPlayer =
+                players[currentTurn];
+
+        }else{
+
+            const standings =
+                getRaceOrder();
+
+            nextPlayer =
+                standings[currentTurn]
+                .player;
         }
 
         setTimeout(()=>{
 
             info.innerHTML =
 
-                players[currentTurn].name +
+                nextPlayer.name +
 
                 " Turn";
 
@@ -1062,6 +1080,10 @@ rollBtn.addEventListener(
         isAnimating = false;
     }
 );
+
+/* ========================================
+RESIZE
+======================================== */
 
 window.addEventListener(
     "resize",
