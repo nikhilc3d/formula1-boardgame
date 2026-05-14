@@ -531,9 +531,6 @@ for(let i=0;i<TOTAL_CARS;i++){
     startIndex =
         startIndex % tiles.length;
 
-    const startingDistance =
-        TOTAL_CARS - i;
-
     players.push({
 
         index:startIndex,
@@ -542,13 +539,20 @@ for(let i=0;i<TOTAL_CARS;i++){
 
         name:carData[i].name,
 
-        distance:startingDistance
+        distance:
+            TOTAL_CARS - i
     });
 }
+
+/* ========================================
+TURN SYSTEM
+======================================== */
 
 let currentTurn = 0;
 
 let firstCycleComplete = false;
+
+let currentRoundOrder = [];
 
 /* ========================================
 DICE POOLS
@@ -599,7 +603,24 @@ function showDice(num){
 }
 
 /* ========================================
-TRUE LEADERBOARD
+CALCULATE TRUE PROGRESS
+======================================== */
+
+function getTrueProgress(player){
+
+    const tileProgress =
+
+        (tiles.length - player.index)
+        % tiles.length;
+
+    return (
+        player.distance * 10000
+        + tileProgress
+    );
+}
+
+/* ========================================
+LEADERBOARD
 ======================================== */
 
 function updateLeaderboard(){
@@ -609,31 +630,13 @@ function updateLeaderboard(){
             "leaderboardTable"
         );
 
-    const standings = players.map(
-        player=>{
-
-            const tileProgress =
-
-                (tiles.length - player.index)
-                % tiles.length;
-
-            const totalProgress =
-
-                player.distance * 10000
-                + tileProgress;
-
-            return{
-
-                name:player.name,
-
-                progress:totalProgress
-            };
-        }
-    );
+    const standings =
+        [...players];
 
     standings.sort((a,b)=>{
 
-        return b.progress - a.progress;
+        return getTrueProgress(b)
+             - getTrueProgress(a);
     });
 
     table.innerHTML = "";
@@ -662,40 +665,54 @@ function updateLeaderboard(){
 }
 
 /* ========================================
-GET CURRENT RACE ORDER
+GET RACE ORDER
 ======================================== */
 
 function getRaceOrder(){
 
-    const standings = players.map(
-        player=>{
-
-            const tileProgress =
-
-                (tiles.length - player.index)
-                % tiles.length;
-
-            const totalProgress =
-
-                player.distance * 10000
-                + tileProgress;
-
-            return{
-
-                player:player,
-
-                progress:totalProgress
-            };
-        }
-    );
+    const standings =
+        [...players];
 
     standings.sort((a,b)=>{
 
-        return b.progress - a.progress;
+        return getTrueProgress(b)
+             - getTrueProgress(a);
     });
 
     return standings;
 }
+
+/* ========================================
+BUILD ROUND ORDER
+======================================== */
+
+function buildRoundOrder(){
+
+    /*
+    FIRST ROUND
+    */
+
+    if(!firstCycleComplete){
+
+        currentRoundOrder =
+            [...players];
+
+        return;
+    }
+
+    /*
+    FREEZE LEADERBOARD
+    */
+
+    currentRoundOrder =
+        getRaceOrder();
+}
+
+/*
+initialize first queue
+*/
+
+buildRoundOrder();
 
 /* ========================================
 DRAW TRACK
@@ -806,14 +823,13 @@ function drawTrack(){
 
     players.forEach((player,carIndex)=>{
 
-        const idx = player.index;
+        if(!occupancy[player.index]){
 
-        if(!occupancy[idx]){
-
-            occupancy[idx] = [];
+            occupancy[player.index] = [];
         }
 
-        occupancy[idx].push(carIndex);
+        occupancy[player.index]
+            .push(carIndex);
     });
 
     /*
@@ -947,7 +963,7 @@ setTimeout(()=>{
 },300);
 
 /* ========================================
-MOVEMENT
+MOVEMENT SYSTEM
 ======================================== */
 
 let isAnimating = false;
@@ -966,22 +982,16 @@ rollBtn.addEventListener(
 
         isAnimating = true;
 
-        let currentPlayer;
+        /*
+        USE FROZEN ROUND ORDER
+        */
 
-        if(!firstCycleComplete){
+        const currentPlayer =
+            currentRoundOrder[currentTurn];
 
-            currentPlayer =
-                players[currentTurn];
-
-        }else{
-
-            const standings =
-                getRaceOrder();
-
-            currentPlayer =
-                standings[currentTurn]
-                .player;
-        }
+        /*
+        WEIGHTED DICE
+        */
 
         const pool =
             dicePools[
@@ -1043,29 +1053,30 @@ rollBtn.addEventListener(
 
         currentTurn++;
 
+        /*
+        END OF ROUND
+        */
+
         if(currentTurn >= TOTAL_CARS){
 
             currentTurn = 0;
 
             firstCycleComplete = true;
+
+            /*
+            rebuild queue ONLY
+            after full round
+            */
+
+            buildRoundOrder();
         }
 
-        let nextPlayer;
+        /*
+        NEXT PLAYER
+        */
 
-        if(!firstCycleComplete){
-
-            nextPlayer =
-                players[currentTurn];
-
-        }else{
-
-            const standings =
-                getRaceOrder();
-
-            nextPlayer =
-                standings[currentTurn]
-                .player;
-        }
+        const nextPlayer =
+            currentRoundOrder[currentTurn];
 
         setTimeout(()=>{
 
