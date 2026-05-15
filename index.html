@@ -75,10 +75,6 @@ UI
     width:340px;
 }
 
-/*
-BUTTON COLUMN
-*/
-
 .button-group{
 
     display:flex;
@@ -828,6 +824,34 @@ function drawTrack(){
     ctx.stroke();
 
     /*
+    TRACK NODE DOTS
+    */
+
+    for(const tile of tiles){
+
+        ctx.beginPath();
+
+        ctx.arc(
+            tile.x,
+            tile.y,
+            4,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle = "white";
+
+        ctx.fill();
+
+        ctx.strokeStyle =
+            "rgba(0,0,0,0.35)";
+
+        ctx.lineWidth = 1.5;
+
+        ctx.stroke();
+    }
+
+    /*
     OCCUPANCY
     */
 
@@ -999,10 +1023,6 @@ const stopBtn =
 const info =
     document.getElementById("info");
 
-/* ========================================
-SINGLE TURN
-======================================== */
-
 async function playTurn(){
 
     if(isAnimating) return;
@@ -1067,15 +1087,7 @@ async function playTurn(){
         });
     }
 
-    /*
-    NEXT TURN
-    */
-
     currentTurn++;
-
-    /*
-    END OF ROUND
-    */
 
     if(currentTurn >= TOTAL_CARS){
 
@@ -1103,7 +1115,7 @@ async function playTurn(){
 }
 
 /* ========================================
-MANUAL ROLL
+BUTTONS
 ======================================== */
 
 rollBtn.addEventListener(
@@ -1115,10 +1127,6 @@ rollBtn.addEventListener(
         await playTurn();
     }
 );
-
-/* ========================================
-AUTOPLAY LOOP
-======================================== */
 
 async function autoPlayLoop(){
 
@@ -1137,10 +1145,6 @@ async function autoPlayLoop(){
     }
 }
 
-/* ========================================
-START AUTOPLAY
-======================================== */
-
 autoBtn.addEventListener(
     "click",
     ()=>{
@@ -1152,10 +1156,6 @@ autoBtn.addEventListener(
         autoPlayLoop();
     }
 );
-
-/* ========================================
-STOP AUTOPLAY
-======================================== */
 
 stopBtn.addEventListener(
     "click",
