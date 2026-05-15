@@ -66,11 +66,26 @@ UI
 
     display:flex;
 
-    align-items:center;
+    align-items:flex-start;
 
     gap:16px;
 
     flex-wrap:wrap;
+
+    width:340px;
+}
+
+/*
+BUTTON COLUMN
+*/
+
+.button-group{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
 }
 
 button{
@@ -294,17 +309,21 @@ LEADERBOARD
 
     </div>
 
-    <button id="rollBtn">
-        ROLL
-    </button>
+    <div class="button-group">
 
-    <button id="autoBtn">
-        AUTOPLAY
-    </button>
+        <button id="rollBtn">
+            ROLL
+        </button>
 
-    <button id="stopBtn">
-        STOP
-    </button>
+        <button id="autoBtn">
+            AUTOPLAY
+        </button>
+
+        <button id="stopBtn">
+            STOP
+        </button>
+
+    </div>
 
     <div class="info" id="info">
         Ferrari Turn
@@ -809,27 +828,6 @@ function drawTrack(){
     ctx.stroke();
 
     /*
-    TRACK NODES
-    */
-
-    for(const tile of tiles){
-
-        ctx.beginPath();
-
-        ctx.arc(
-            tile.x,
-            tile.y,
-            4,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fillStyle = "white";
-
-        ctx.fill();
-    }
-
-    /*
     OCCUPANCY
     */
 
@@ -979,11 +977,7 @@ function drawTrack(){
     updateLeaderboard();
 }
 
-setTimeout(()=>{
-
-    drawTrack();
-
-},300);
+drawTrack();
 
 /* ========================================
 MOVEMENT SYSTEM
